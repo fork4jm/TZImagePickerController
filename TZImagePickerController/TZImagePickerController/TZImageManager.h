@@ -12,6 +12,8 @@
 #import <Photos/Photos.h>
 #import "TZAssetModel.h"
 
+#define RGBA(Red, Green, Blue, Alpha) [UIColor colorWithRed:(Red) / 255.0 green:(Green) / 255.0 blue:(Blue) / 255.0 alpha:Alpha]
+
 @class TZAlbumModel,TZAssetModel;
 @protocol TZImagePickerControllerDelegate;
 @interface TZImageManager : NSObject
@@ -119,6 +121,9 @@
 - (NSString *)getNewTimeFromDurationSecond:(NSInteger)duration;
 
 - (TZAssetModel *)createModelWithAsset:(PHAsset *)asset;
+
++ (UIImage *)imageWithColor:(UIColor *)color size:(CGSize)size;
++ (UIImage *)imageWithColor:(UIColor *)color;
 
 @end
 

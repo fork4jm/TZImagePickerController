@@ -58,8 +58,8 @@
 
     // Default appearance, you can reset these after this method
     // 默认的外观，你可以在这个方法后重置
-    self.oKButtonTitleColorNormal   = [UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:1.0];
-    self.oKButtonTitleColorDisabled = [UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:0.5];
+    self.oKButtonTitleColorNormal   = [UIColor whiteColor];//[UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:1.0];
+    self.oKButtonTitleColorDisabled = [UIColor colorWithRed:(183/255.0) green:(183/255.0) blue:(183/255.0) alpha:1];
     
     self.navigationBar.barTintColor = [UIColor colorWithRed:(34/255.0) green:(34/255.0)  blue:(34/255.0) alpha:1.0];
     self.navigationBar.tintColor = [UIColor whiteColor];
@@ -287,7 +287,7 @@
 }
 
 - (void)configDefaultImageName {
-    self.takePictureImageName = @"takePicture80";
+    self.takePictureImageName = @"takePicture";
     self.photoSelImageName = @"photo_sel_photoPickerVc";
     self.photoDefImageName = @"photo_def_photoPickerVc";
     self.photoNumberIconImage = [self createImageWithColor:nil size:CGSizeMake(24, 24) radius:12]; // @"photo_number_icon";
@@ -395,11 +395,19 @@
         TZPhotoPickerController *photoPickerVc = [[TZPhotoPickerController alloc] init];
         photoPickerVc.isFirstAppear = YES;
         photoPickerVc.columnNumber = self.columnNumber;
-        [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo allowPickingImage:self.allowPickingImage needFetchAssets:NO completion:^(TZAlbumModel *model) {
-            photoPickerVc.model = model;
-            [self pushViewController:photoPickerVc animated:YES];
-            self->_didPushPhotoPickerVc = YES;
-        }];
+        if (self.allowPickingGif) {
+            [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo allowPickingImage:YES needFetchAssets:NO completion:^(TZAlbumModel *model) {
+                photoPickerVc.model = model;
+                [self pushViewController:photoPickerVc animated:YES];
+                self->_didPushPhotoPickerVc = YES;
+            }];
+        } else {
+            [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo allowPickingImage:self.allowPickingImage needFetchAssets:NO completion:^(TZAlbumModel *model) {
+                photoPickerVc.model = model;
+                [self pushViewController:photoPickerVc animated:YES];
+                self->_didPushPhotoPickerVc = YES;
+            }];
+        }
     }
 }
 
@@ -600,6 +608,11 @@
     }
 }
 
+- (void)setAllowPickingGif:(BOOL)allowPickingGif {
+    _allowPickingGif = allowPickingGif;
+    [TZImagePickerConfig sharedInstance].allowPickingGif = allowPickingGif;
+}
+
 - (void)setPreferredLanguage:(NSString *)preferredLanguage {
     _preferredLanguage = preferredLanguage;
     [TZImagePickerConfig sharedInstance].preferredLanguage = preferredLanguage;
@@ -686,13 +699,13 @@
 #pragma mark - Public
 
 - (void)cancelButtonClick {
-    if (self.autoDismiss) {
+//    if (self.autoDismiss) {
         [self dismissViewControllerAnimated:YES completion:^{
             [self callDelegateMethod];
         }];
-    } else {
-        [self callDelegateMethod];
-    }
+//    } else {
+//        [self callDelegateMethod];
+//    }
 }
 
 - (void)callDelegateMethod {
@@ -721,10 +734,16 @@
     self.isFirstAppear = YES;
     self.view.backgroundColor = [UIColor whiteColor];
     
-    TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
-    UIBarButtonItem *cancelItem = [[UIBarButtonItem alloc] initWithTitle:imagePickerVc.cancelBtnTitleStr style:UIBarButtonItemStylePlain target:imagePickerVc action:@selector(cancelButtonClick)];
-    [TZCommonTools configBarButtonItem:cancelItem tzImagePickerVc:imagePickerVc];
-    self.navigationItem.rightBarButtonItem = cancelItem;
+     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+      
+    if ([imagePickerVc.pickerDelegate respondsToSelector:@selector(addTitleViewToSuperView:picker:)]) {
+        imagePickerVc.navigationBarHidden = YES;
+        [imagePickerVc.pickerDelegate addTitleViewToSuperView:self.view picker:imagePickerVc];
+    } else {
+        UIBarButtonItem *cancelItem = [[UIBarButtonItem alloc] initWithTitle:imagePickerVc.cancelBtnTitleStr style:UIBarButtonItemStylePlain target:imagePickerVc action:@selector(cancelButtonClick)];
+        [TZCommonTools configBarButtonItem:cancelItem tzImagePickerVc:imagePickerVc];
+        self.navigationItem.rightBarButtonItem = cancelItem;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -845,7 +864,7 @@
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     cell.albumCellDidLayoutSubviewsBlock = imagePickerVc.albumCellDidLayoutSubviewsBlock;
     cell.albumCellDidSetModelBlock = imagePickerVc.albumCellDidSetModelBlock;
-    cell.selectedCountButton.backgroundColor = imagePickerVc.iconThemeColor;
+    cell.selectedCountButton.backgroundColor = imagePickerVc.oKButtonTitleColorNormal;
     cell.model = _albumArr[indexPath.row];
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     return cell;

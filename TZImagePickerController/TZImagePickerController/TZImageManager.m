@@ -175,13 +175,13 @@ static dispatch_once_t onceToken;
 /// Get Assets 获得照片数组
 - (void)getAssetsFromFetchResult:(PHFetchResult *)result completion:(void (^)(NSArray<TZAssetModel *> *))completion {
     TZImagePickerConfig *config = [TZImagePickerConfig sharedInstance];
-    return [self getAssetsFromFetchResult:result allowPickingVideo:config.allowPickingVideo allowPickingImage:config.allowPickingImage completion:completion];
+    return [self getAssetsFromFetchResult:result allowPickingVideo:config.allowPickingVideo allowPickingImage:config.allowPickingImage allowPickingGif:config.allowPickingGif completion:completion];
 }
 
-- (void)getAssetsFromFetchResult:(PHFetchResult *)result allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage completion:(void (^)(NSArray<TZAssetModel *> *))completion {
+- (void)getAssetsFromFetchResult:(PHFetchResult *)result allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage allowPickingGif:(BOOL)allowPickingGif completion:(void (^)(NSArray<TZAssetModel *> *))completion {
     NSMutableArray *photoArr = [NSMutableArray array];
     [result enumerateObjectsUsingBlock:^(PHAsset *asset, NSUInteger idx, BOOL * _Nonnull stop) {
-        TZAssetModel *model = [self assetModelWithAsset:asset allowPickingVideo:allowPickingVideo allowPickingImage:allowPickingImage];
+        TZAssetModel *model = [self assetModelWithAsset:asset allowPickingVideo:allowPickingVideo allowPickingImage:allowPickingImage allowPickingGif:allowPickingGif];
         if (model) {
             [photoArr addObject:model];
         }
@@ -191,7 +191,7 @@ static dispatch_once_t onceToken;
 
 ///  Get asset at index 获得下标为index的单个照片
 ///  if index beyond bounds, return nil in callback 如果索引越界, 在回调中返回 nil
-- (void)getAssetFromFetchResult:(PHFetchResult *)result atIndex:(NSInteger)index allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage completion:(void (^)(TZAssetModel *))completion {
+- (void)getAssetFromFetchResult:(PHFetchResult *)result atIndex:(NSInteger)index allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage allowPickingGif:(BOOL)allowPickingGif completion:(void (^)(TZAssetModel *))completion {
     PHAsset *asset;
     @try {
         asset = result[index];
@@ -200,11 +200,11 @@ static dispatch_once_t onceToken;
         if (completion) completion(nil);
         return;
     }
-    TZAssetModel *model = [self assetModelWithAsset:asset allowPickingVideo:allowPickingVideo allowPickingImage:allowPickingImage];
+    TZAssetModel *model = [self assetModelWithAsset:asset allowPickingVideo:allowPickingVideo allowPickingImage:allowPickingImage allowPickingGif:allowPickingGif];
     if (completion) completion(model);
 }
 
-- (TZAssetModel *)assetModelWithAsset:(PHAsset *)asset allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage {
+- (TZAssetModel *)assetModelWithAsset:(PHAsset *)asset allowPickingVideo:(BOOL)allowPickingVideo allowPickingImage:(BOOL)allowPickingImage allowPickingGif:(BOOL)allowPickingGif {
     BOOL canSelect = YES;
     if ([self.pickerDelegate respondsToSelector:@selector(isAssetCanSelect:)]) {
         canSelect = [self.pickerDelegate isAssetCanSelect:asset];
@@ -215,7 +215,11 @@ static dispatch_once_t onceToken;
     TZAssetModelMediaType type = [self getAssetType:asset];
     if (!allowPickingVideo && type == TZAssetModelMediaTypeVideo) return nil;
     if (!allowPickingImage && type == TZAssetModelMediaTypePhoto) return nil;
-    if (!allowPickingImage && type == TZAssetModelMediaTypePhotoGif) return nil;
+    if (allowPickingImage) {
+        
+    } else {
+        if (!allowPickingGif && type == TZAssetModelMediaTypePhotoGif) return nil;
+    }
     
     PHAsset *phAsset = (PHAsset *)asset;
     if (self.hideWhenCanNotSelect) {
@@ -624,6 +628,10 @@ static dispatch_once_t onceToken;
     // Find compatible presets by video asset.
     NSArray *presets = [AVAssetExportSession exportPresetsCompatibleWithAsset:videoAsset];
     
+    if ([self.pickerDelegate respondsToSelector:@selector(imagePickerController:showProgressHud:)]) {
+        [self.pickerDelegate imagePickerController:nil showProgressHud:@"处理中..."];
+    }
+    
     // Begin to compress video
     // Now we just compress to low resolution if it supports
     // If you need to upload to the server, but server does't support to upload by streaming,
@@ -682,17 +690,26 @@ static dispatch_once_t onceToken;
                     }  break;
                     case AVAssetExportSessionStatusCompleted: {
                         NSLog(@"AVAssetExportSessionStatusCompleted");
+                        if ([self.pickerDelegate respondsToSelector:@selector(imagePickerController:dismissHudAfter:)]) {
+                            [self.pickerDelegate imagePickerController:nil dismissHudAfter:0.1];
+                        }
                         if (success) {
                             success(outputPath);
                         }
                     }  break;
                     case AVAssetExportSessionStatusFailed: {
+                        if ([self.pickerDelegate respondsToSelector:@selector(imagePickerController:showErrorHud:)]) {
+                            [self.pickerDelegate imagePickerController:nil showErrorHud:@"视频处理失败"];
+                        }
                         NSLog(@"AVAssetExportSessionStatusFailed");
                         if (failure) {
                             failure(@"视频导出失败", session.error);
                         }
                     }  break;
                     case AVAssetExportSessionStatusCancelled: {
+                        if ([self.pickerDelegate respondsToSelector:@selector(imagePickerController:dismissHudAfter:)]) {
+                            [self.pickerDelegate imagePickerController:nil dismissHudAfter:0.1];
+                        }
                         NSLog(@"AVAssetExportSessionStatusCancelled");
                         if (failure) {
                             failure(@"导出任务已被取消", nil);
@@ -932,6 +949,25 @@ static dispatch_once_t onceToken;
     CGContextRelease(ctx);
     CGImageRelease(cgimg);
     return img;
+}
+
++ (UIImage *)imageWithColor:(UIColor *)color size:(CGSize)size {
+    if (CGSizeEqualToSize(size, CGSizeZero)) {
+        size = CGSizeMake(1, 1);
+    }
+    UIGraphicsBeginImageContext(size);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+
+    CGContextSetFillColorWithColor(context, [color CGColor]);
+    CGContextFillRect(context, CGRectMake(0, 0, size.width, size.height));
+
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return image;
+}
+
++ (UIImage *)imageWithColor:(UIColor *)color {
+    return [self imageWithColor:color size:CGSizeMake(1, 1)];
 }
 
 #pragma clang diagnostic pop

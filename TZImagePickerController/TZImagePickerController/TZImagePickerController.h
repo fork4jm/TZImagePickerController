@@ -227,6 +227,9 @@
 @property (nonatomic, strong) UIFont *naviTitleFont;
 @property (nonatomic, strong) UIColor *barItemTextColor;
 @property (nonatomic, strong) UIFont *barItemTextFont;
+@property (nonatomic, strong) UIImage *oKButtonBackgroundImageNormal;
+@property (nonatomic, strong) UIImage *oKButtonBackgroundImageDisabled;
+@property (nonatomic, strong) UIColor *previewButtonColorNormal;
 
 @property (nonatomic, copy) NSString *doneBtnTitleStr;
 @property (nonatomic, copy) NSString *cancelBtnTitleStr;
@@ -289,6 +292,16 @@
 // Decide asset show or not't
 // 决定照片显示与否
 - (BOOL)isAssetCanSelect:(PHAsset *)asset;
+
+- (void)imagePickerController:(TZImagePickerController *)picker showToast:(NSString *)toast;
+
+- (void)imagePickerController:(TZImagePickerController *)picker showProgressHud:(NSString *)hud;
+- (void)imagePickerController:(TZImagePickerController *)picker showErrorHud:(NSString *)hud;
+- (void)imagePickerController:(TZImagePickerController *)picker dismissHudAfter:(NSTimeInterval)duration;
+
+- (void)addTitleViewToSuperView:(UIView *)view picker:(TZImagePickerController *)picker;
+- (void)addTitleViewToPhotoPickerView:(UIView *)view picker:(TZImagePickerController *)picker;
+
 @end
 
 
@@ -320,6 +333,7 @@
 @property (copy, nonatomic) NSString *preferredLanguage;
 @property(nonatomic, assign) BOOL allowPickingImage;
 @property (nonatomic, assign) BOOL allowPickingVideo;
+@property(nonatomic, assign) BOOL allowPickingGif;
 @property (strong, nonatomic) NSBundle *languageBundle;
 @property (assign, nonatomic) BOOL showSelectedIndex;
 @property (assign, nonatomic) BOOL showPhotoCannotSelectLayer;

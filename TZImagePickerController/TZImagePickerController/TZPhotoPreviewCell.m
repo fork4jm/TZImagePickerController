@@ -174,6 +174,8 @@
                 self.imageView.image = photo;
             }
             [self resizeSubviews];
+			//GIF预览有问题，直接返回。
+            return;
             if (self.isRequestingGIF) {
                 return;
             }
