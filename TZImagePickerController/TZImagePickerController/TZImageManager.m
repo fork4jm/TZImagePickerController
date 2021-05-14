@@ -699,7 +699,7 @@ static dispatch_once_t onceToken;
                     }  break;
                     case AVAssetExportSessionStatusFailed: {
                         if ([self.pickerDelegate respondsToSelector:@selector(imagePickerController:showErrorHud:)]) {
-                            [self.pickerDelegate imagePickerController:nil showErrorHud:@"视频处理失败"];
+                            [self.pickerDelegate imagePickerController:nil showErrorHud:[NSString stringWithFormat:@"视频处理失败,%@",session.error.localizedDescription]];
                         }
                         NSLog(@"AVAssetExportSessionStatusFailed");
                         if (failure) {
