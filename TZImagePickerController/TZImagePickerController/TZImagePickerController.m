@@ -804,6 +804,9 @@
                     if (imagePickerVc.albumPickerPageUIConfigBlock) {
                         imagePickerVc.albumPickerPageUIConfigBlock(self->_tableView);
                     }
+                    if (@available(iOS 15.0, *)) {
+                        self->_tableView.sectionHeaderTopPadding = 0;
+                    }
                 } else {
                     [self->_tableView reloadData];
                 }
